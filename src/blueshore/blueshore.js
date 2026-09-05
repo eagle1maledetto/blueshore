@@ -15,8 +15,9 @@
  * 1. Folder unread/item counts: the Classic tree renders them inline in the
  *    label text, "Inbox (2)" inside a single SPAN. To reproduce the design
  *    (name left, count right-aligned in accent colour) the count is split
- *    into its own badge span at render time. Styling lives in skin.css
- *    ([data-bs-unread]).
+ *    into its own badge span at render time, only when the number matches
+ *    the folder model (a folder may be called "Budget (2026)"). Styling
+ *    lives in skin.css ([data-bs-unread]).
  * 2. Empty-state placeholder ("To view...") stretched to full height so the
  *    CSS can centre it vertically.
  * 3. Legacy avatar <img> src swapped with the svg map window.BlueshoreImgSwap
@@ -29,6 +30,20 @@
  */
 (function() {
 	var RE = /^(.*) \((\d+)\)$/;
+
+	// The count Zimbra appends to a tree label, read from the organizer behind
+	// the DOM node: unread messages, or the total for Drafts and Outbox. null
+	// when the node has no model (the text is then left as it is).
+	function modelCount(el) {
+		var Ctl = window.DwtControl, F = window.ZmFolder;
+		var ctl = Ctl && Ctl.findControl ? Ctl.findControl(el) : null;
+		var org = ctl && ctl.getData && window.Dwt ? ctl.getData(Dwt.KEY_OBJECT) : null;
+		if (!org) { return null; }
+		if (F && (org.nId == F.ID_DRAFTS || org.nId == F.ID_OUTBOX || org.rid == F.ID_DRAFTS)) {
+			return org.numTotal;
+		}
+		return org.numUnread;
+	}
 
 	function enhance() {
 		// empty state ("To view...") vertically centred: between the sized
@@ -68,8 +83,11 @@
 			var span = spans[i];
 			if (span.querySelector("[data-bs-unread]")) { continue; }
 			var item = span.closest ? span.closest(".DwtTreeItem") : null;
+			// "(n)" is a count only if the model agrees: Zimbra bolds a folder
+			// whose subfolders have unread mail without appending a number, so
+			// "Budget (2026)" must stay a name there
 			var m = RE.exec(span.textContent);
-			if (!m) {
+			if (!m || String(modelCount(span)) !== m[2]) {
 				if (item) { item.classList.remove("bs-has-unread"); }
 				continue;
 			}
