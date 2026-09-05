@@ -673,6 +673,9 @@ TD.DwtListView-ColumnActive  {
 .ZmConvListFragment {
 	color:@TextFaintC@ !important;
 	font-weight:400;
+	/* the core renders the fragment at opacity .7: the token already carries
+	   the intended lightness, at .7 the text drops to ~2.5:1 */
+	opacity:1 !important;
 }
 
 .ZmConvListNumMsgs {
