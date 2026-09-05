@@ -15,10 +15,12 @@
 
 A palette is a skin.properties fragment: `SkinName = <dir and skin name>` plus
 any token of src/blueshore/skin.properties whose value changes. Copy
-palettes/tide.properties to start your own variant; unknown token names are
-rejected so typos cannot silently fall back to the default colour.
+palettes/tide.properties to start your own variant; unknown token names,
+malformed lines and duplicate names are rejected so typos cannot silently fall
+back to the default colour.
 
-The output directory is regenerated from scratch on every build: icons.css and
+The output directory is regenerated from scratch on every successful build
+(a failed one leaves the previous output untouched): icons.css and
 img/images.css.js are produced by gen-icons.py from the merged tokens.
 """
 import shutil
@@ -38,7 +40,10 @@ GENERATED = ("icons.css", "images.css.js")
 
 
 def build(palette_path):
-    palette = read_raw(palette_path)
+    try:
+        palette = read_raw(palette_path, strict=True)
+    except ValueError as e:
+        sys.exit(str(e))
     name = palette.get("SkinName")
     if not name:
         sys.exit(f"{palette_path.name}: SkinName is required")
@@ -48,17 +53,29 @@ def build(palette_path):
         # "blueshoretide", which does not exist, and the default skin is served.
         sys.exit(f"{palette_path.name}: SkinName must be ASCII letters/digits only "
                  f"(Zimbra drops any other character), got {name!r}")
-    out = SKINS / name
-    if out.exists():
-        shutil.rmtree(out)
-    shutil.copytree(SRC, out, ignore=shutil.ignore_patterns(*GENERATED, "__pycache__"))
     text, unknown = merge_properties((SRC / "skin.properties").read_text(), palette)
     if unknown:
-        shutil.rmtree(out)
         sys.exit(f"{palette_path.name}: tokens not defined in src skin.properties: "
                  + ", ".join(sorted(unknown)))
-    (out / "skin.properties").write_text(text)
-    subprocess.run([sys.executable, str(TOOLS / "gen-icons.py"), str(out)], check=True)
+    # Generate next to the final directory and swap at the end, so a palette
+    # or generator error leaves the previous build of this skin untouched.
+    out = SKINS / name
+    tmp = SKINS / f"{name}.tmp"
+    if tmp.exists():
+        shutil.rmtree(tmp)
+    try:
+        shutil.copytree(SRC, tmp, ignore=shutil.ignore_patterns(*GENERATED, "__pycache__"))
+        (tmp / "skin.properties").write_text(text)
+        subprocess.run([sys.executable, str(TOOLS / "gen-icons.py"), str(tmp)], check=True)
+    except subprocess.CalledProcessError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        sys.exit(f"{palette_path.name}: gen-icons.py failed, {out.relative_to(ROOT)}/ left as it was")
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    if out.exists():
+        shutil.rmtree(out)
+    tmp.rename(out)
     print(f"built {out.relative_to(ROOT)}/ from palettes/{palette_path.name}")
 
 

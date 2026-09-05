@@ -29,8 +29,12 @@ Python 3.8 or newer, standard library only. For each palette the build copies
 `src/blueshore/` to `skins/<SkinName>/`, merges the palette tokens into
 `skin.properties`, then runs `gen-icons.py` on the result so that the icons
 take the variant's colours. A palette token that does not exist in the source
-is an error (typos cannot slip through), and `SkinName` must be ASCII letters
-and digits only (Zimbra drops every other character from the skin parameter).
+is an error (typos cannot slip through), and so are lines that are not
+`Name = value`, names defined twice, and colours used by the icon generator
+that are not plain `#rgb`/`#rrggbb` (they are embedded verbatim in SVG and
+JavaScript). `SkinName` must be ASCII letters and digits only (Zimbra drops
+every other character from the skin parameter). A failed build leaves the
+previous `skins/<SkinName>/` untouched.
 
 ## Making a variant
 

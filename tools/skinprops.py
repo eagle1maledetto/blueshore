@@ -20,13 +20,25 @@ import re
 LINE_RE = re.compile(r"^([ \t]*)([A-Za-z][\w-]*)([ \t]*=[ \t]*)(.*?)[ \t]*$")
 
 
-def read_raw(path):
-    """{name: value} exactly as written (aliases unresolved)."""
+def read_raw(path, strict=False):
+    """{name: value} exactly as written (aliases unresolved).
+
+    strict=True (hand-written palettes): a line that is neither blank, a
+    comment nor `Name = value`, or a name defined twice, raises ValueError
+    with file and line number instead of being silently ignored. Zimbra's own
+    skin.properties files are read tolerantly."""
     raw = {}
-    for line in path.read_text().splitlines():
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
         m = LINE_RE.match(line)
-        if m and not line.lstrip().startswith("#"):
-            raw[m.group(2)] = m.group(4)
+        if not m:
+            if strict:
+                raise ValueError(f"{path.name}:{n}: expected `Name = value`, got {line.strip()!r}")
+            continue
+        if strict and m.group(2) in raw:
+            raise ValueError(f"{path.name}:{n}: {m.group(2)} is defined twice")
+        raw[m.group(2)] = m.group(4)
     return raw
 
 

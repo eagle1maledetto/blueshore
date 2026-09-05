@@ -9,6 +9,7 @@
 # option) any later version. See the LICENSE file for details.
 """Generate blueshore icons.css: CSS class overrides for Zimbra Classic sprite
 icons, using inline SVG data URIs derived from Lucide (ISC license)."""
+import json
 import re
 import sys
 from pathlib import Path
@@ -28,7 +29,18 @@ OUT_JS = SKIN_DIR / "img" / "images.css.js"
 # Every colour comes from the skin's own design tokens: a colour variant is a
 # different skin.properties, never a different script.
 TOKENS = read_tokens(SKIN_DIR / "skin.properties")
-T = TOKENS.__getitem__
+HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+def T(name):
+    """A colour token. The value is embedded verbatim in SVG attributes and in
+    the generated JavaScript, so only plain hex colours are accepted."""
+    value = TOKENS.get(name)
+    if value is None:
+        sys.exit(f"{SKIN_DIR.name}/skin.properties: colour token {name} is missing")
+    if not HEX_COLOR.match(value):
+        sys.exit(f"{SKIN_DIR.name}/skin.properties: {name} must be a #rgb or #rrggbb "
+                 f"colour, got {value!r}")
+    return value
 
 NEUTRAL = T("TextMidC")
 ACCENT = T("AccentC")
@@ -509,8 +521,8 @@ js.append("};\n")
 # standard folder/tag/calendar colours: the client tints them with the RGB values
 # of ZmMsg.color* (ZmOrganizer.COLOR_VALUES table), not with the skin; blueshore.js
 # replaces them with the token palette (per variant)
-js.append("window.BlueshoreColorValues = {\n")
-js.append(",\n".join(f'\t"{name.lower()}": "{color}"' for name, color in TAG_COLORS.items()) + "\n")
-js.append("};\n")
+js.append("window.BlueshoreColorValues = ")
+js.append(json.dumps({name.lower(): color for name, color in TAG_COLORS.items()}, indent="\t"))
+js.append(";\n")
 OUT_JS.write_text("".join(js))
 print(f"wrote {OUT_JS} ({OUT_JS.stat().st_size} bytes)")
