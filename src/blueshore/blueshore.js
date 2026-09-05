@@ -83,11 +83,13 @@
 			var span = spans[i];
 			if (span.querySelector("[data-bs-unread]")) { continue; }
 			var item = span.closest ? span.closest(".DwtTreeItem") : null;
-			// "(n)" is a count only if the model agrees: Zimbra bolds a folder
-			// whose subfolders have unread mail without appending a number, so
-			// "Budget (2026)" must stay a name there
+			// "(n)" is a count only if the model agrees, and Zimbra appends one
+			// only when it is positive: a folder whose subfolders have unread
+			// mail is bolded without a number, so "Budget (2026)" or "Budget (0)"
+			// must stay a name there
 			var m = RE.exec(span.textContent);
-			if (!m || String(modelCount(span)) !== m[2]) {
+			var n = m ? modelCount(span) : null;
+			if (!m || !(n > 0) || String(n) !== m[2]) {
 				if (item) { item.classList.remove("bs-has-unread"); }
 				continue;
 			}

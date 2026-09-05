@@ -73,9 +73,21 @@ def build(palette_path):
     except BaseException:
         shutil.rmtree(tmp, ignore_errors=True)
         raise
+    # Two renames instead of delete-then-rename: the previous build is put
+    # back if the new one cannot take its place.
+    old = SKINS / f"{name}.old"
+    if old.exists():
+        shutil.rmtree(old)
     if out.exists():
-        shutil.rmtree(out)
-    tmp.rename(out)
+        out.rename(old)
+    try:
+        tmp.rename(out)
+    except OSError:
+        if old.exists():
+            old.rename(out)
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    shutil.rmtree(old, ignore_errors=True)
     print(f"built {out.relative_to(ROOT)}/ from palettes/{palette_path.name}")
 
 
