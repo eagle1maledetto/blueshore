@@ -72,7 +72,7 @@ troubleshooting in [INSTALL.md](INSTALL.md)):
 
 ```sh
 sudo su - zimbra
-VER=1.0.2
+VER=1.0.3
 SKIN=blueshoretide
 zmacl disable
 curl -fLo /tmp/$SKIN.zip https://github.com/eagle1maledetto/blueshore/releases/download/v$VER/$SKIN-$VER.zip

@@ -19,7 +19,7 @@ single `<SKIN>/` directory.
 `<SKIN>.zip`:
 
 ```sh
-VER=1.0.2
+VER=1.0.3
 SKIN=blueshoretide
 curl -fLo /tmp/$SKIN.zip https://github.com/eagle1maledetto/blueshore/releases/download/v$VER/$SKIN-$VER.zip
 ```
