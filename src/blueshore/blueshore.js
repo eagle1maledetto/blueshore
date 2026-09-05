@@ -100,6 +100,15 @@
 			span.appendChild(badge);
 			if (item) { item.classList.add("bs-has-unread"); }
 		}
+		// once the last unread is gone Zimbra rewrites the label as plain text
+		// with no SPAN, so the loop above never visits it again: drop the class
+		// (and its badge padding) from items that no longer carry a badge
+		var stale = document.querySelectorAll(".ZmOverview .DwtTreeItem.bs-has-unread");
+		for (var s = 0; s < stale.length; s++) {
+			if (!stale[s].querySelector("[data-bs-unread]")) {
+				stale[s].classList.remove("bs-has-unread");
+			}
+		}
 	}
 
 	// "New" button menu: Zimbra opens it aligned to the left edge while the
@@ -116,7 +125,9 @@
 			if (mr.width > 0 && Math.abs(mr.left - br.left) < 12 &&
 					mr.top >= br.bottom - 2 && mr.top <= br.bottom + 16) {
 				var want = Math.round(br.right - mr.width);
-				if (Math.abs(mr.left - want) > 2) {
+				// a menu wider than the room left of the button's right edge
+				// keeps Zimbra's own placement instead of going off screen
+				if (want >= 0 && Math.abs(mr.left - want) > 2) {
 					menus[k].style.left = want + "px";
 				}
 			}

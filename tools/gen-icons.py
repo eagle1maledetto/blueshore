@@ -32,14 +32,18 @@ TOKENS = read_tokens(SKIN_DIR / "skin.properties")
 HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 def T(name):
-    """A colour token. The value is embedded verbatim in SVG attributes and in
-    the generated JavaScript, so only plain hex colours are accepted."""
+    """A colour token as #rrggbb. The value is embedded verbatim in SVG
+    attributes and in the generated JavaScript, so only plain hex colours are
+    accepted; #rgb is expanded because Zimbra's AjxColor, which tints the
+    calendar with the Tag*C values, parses six digits only."""
     value = TOKENS.get(name)
     if value is None:
         sys.exit(f"{SKIN_DIR.name}/skin.properties: colour token {name} is missing")
     if not HEX_COLOR.match(value):
         sys.exit(f"{SKIN_DIR.name}/skin.properties: {name} must be a #rgb or #rrggbb "
                  f"colour, got {value!r}")
+    if len(value) == 4:
+        value = "#" + "".join(c * 2 for c in value[1:])
     return value
 
 NEUTRAL = T("TextMidC")
